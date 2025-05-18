@@ -1,6 +1,6 @@
 <script>
-  import { page } from '$app/state';
-  let { bots, children } = $props();
+  // get bots and children from props
+  let { bots = {}, children } = $props();
 </script>
 
 <nav class="side-nav">
@@ -8,12 +8,14 @@
     <img src="/logo_v2.svg" alt="Ragnode Logo" class="nav-logo" />
   </div>
   <ul class="nav-links">
-    <li><a href="/" class={{ active: $page.url.pathname === '/' }}>Home</a></li>
+    <li>
+      <a href="/" class="nav-item">Home</a>
+    </li>
     {#each Object.entries(bots) as [botId, bot]}
       <li>
         <a
-          href="/{botId}"
-          class={{ active: $page.url.pathname === `/${botId}` }}
+          href="/{botId}-chat"
+          class="nav-item"
         >
           {bot.title}
         </a>
@@ -21,7 +23,6 @@
     {/each}
   </ul>
 </nav>
-
 <main class="main-content">
   {@render children()}
 </main>

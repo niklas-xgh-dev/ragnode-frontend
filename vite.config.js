@@ -5,15 +5,12 @@ export default defineConfig({
   plugins: [sveltekit()],
   server: {
     proxy: {
-      // bots list + any other endpoints
+      // ONLY proxy backend API and gradio endpoints, NOT the root path!
       '/api': 'http://localhost:8000',
-      // each bot’s Gradio mount (e.g. /gpt4all/, /mybot/, etc.)
-      // you can proxy all /<bot>/ to the same backend
-      '/': {
-        target: 'http://localhost:8000',
-        // but we’ll let SvelteKit handle static (`/static`) and API explicitly
-        // so only passthrough unknown routes if they match a bot path
-      }
+      // If your gradio chatbots are at e.g. `/health-hunch-chat/`, list them here:
+      // '/health-hunch-chat': 'http://localhost:8000',
+      // '/etf-navigator-chat': 'http://localhost:8000',
+      // ...etc
     }
   }
 });
