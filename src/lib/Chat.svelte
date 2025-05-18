@@ -9,28 +9,15 @@
   let history = $state([]);
   let messages = $state<{ sender: 'user' | 'bot'; text: string }[]>([]);
 
-  let client;
-  let messagesEnd: HTMLDivElement | null = null;
-  let inputElem: HTMLTextAreaElement | null = null;
+  let client, messagesEnd: HTMLDivElement | null = null, inputElem: HTMLTextAreaElement | null = null;
 
   marked.setOptions({
-    highlight: function (code, lang) {
-      if (Prism.languages[lang]) {
-        return Prism.highlight(code, Prism.languages[lang], lang);
-      }
-      return code;
-    },
-    breaks: true,
-    gfm: true
+    highlight: (code, lang) => Prism.languages[lang] ? Prism.highlight(code, Prism.languages[lang], lang) : code,
+    breaks: true, gfm: true
   });
 
-  $effect(() => {
-    messagesEnd?.scrollIntoView({ behavior: 'smooth' });
-  });
-
-  $effect(async () => {
-    client = await Client.connect(baseUrl);
-  });
+  $effect(() => messagesEnd?.scrollIntoView({ behavior: 'smooth' }));
+  $effect(async () => { client = await Client.connect(baseUrl); });
 
   async function sendMessage() {
     const text = userInput.trim();
@@ -38,25 +25,16 @@
     userInput = '';
     messages = [...messages, { sender: 'user', text }];
 
-    // 1. Call /user_3 with [text, history]
     const jobUser = await client.submit('/user_3', [text, history]);
     const { value: userRes } = await jobUser.next();
-    let updatedHistory = userRes[1] || userRes.data?.[1];
-    if (!updatedHistory) {
-      updatedHistory = [...history, { role: "user", content: text }];
-    }
+    let updatedHistory = userRes[1] || userRes.data?.[1] || [...history, { role: "user", content: text }];
 
-    // 2. Call /bot_3 with [updatedHistory]
     const jobBot = await client.submit('/bot_3', [updatedHistory]);
-    let botMsg = '';
     for await (const res of jobBot) {
-      let streamedHistory = res[0] || res.data?.[0];
+      const streamedHistory = res[0] || res.data?.[0];
       if (!Array.isArray(streamedHistory)) continue;
-      const last = streamedHistory[streamedHistory.length - 1];
-      if (last && last.role === "assistant" && last.content !== undefined) {
-        botMsg = last.content;
-        upsertBotMessage(botMsg);
-      }
+      const last = streamedHistory.at(-1);
+      if (last?.role === "assistant" && last.content !== undefined) upsertBotMessage(last.content);
       history = streamedHistory;
     }
   }
@@ -70,11 +48,8 @@
     }
   }
 
-  // Post-process markdown for Prism highlighting and copyable code
   function renderMarkdown(text: string) {
-    // marked will call Prism's highlight above
     const html = marked.parse(text || '');
-    // Optionally, auto-copy button for code blocks
     return html.replace(
       /<pre><code class="language-([^"]*)">([\s\S]*?)<\/code><\/pre>/g,
       (match, lang, code) =>
@@ -85,8 +60,6 @@
     );
   }
 
-  // Fix for copy button (since it is injected as HTML, we must make the helper global)
-  // Place this helper on window so copy buttons can use it:
   if (typeof window !== "undefined") {
     (window as any).decodeHTMLEntities = (text: string) => {
       const txt = document.createElement('textarea');
@@ -100,7 +73,6 @@
       e.preventDefault();
       sendMessage();
     }
-    // Else allow multi-line entry (Shift+Enter or resize)
   }
 </script>
 
@@ -108,17 +80,13 @@
   <div class="messages">
     {#each messages as m}
       <div class="msg-row {m.sender}">
-        <div
-          class={{'msg-bubble': true, bot: m.sender === 'bot', user: m.sender === 'user'}}
-          tabindex="0"
-        >
+        <div class={{'msg-bubble': true, bot: m.sender === 'bot', user: m.sender === 'user'}} tabindex="0">
           {@html renderMarkdown(m.text)}
         </div>
       </div>
     {/each}
     <div bind:this={messagesEnd}></div>
   </div>
-
   <div class="input-row">
     <textarea
       class="input"
@@ -136,6 +104,16 @@
 </div>
 
 <style>
+  /*  Load Fira Code  */
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+
+  /*  Apply it everywhere in the chat UI  */
+  :global(.chatbox),
+  :global(.msg-bubble),
+  :global(.input) {
+    font-family: 'Fira Code', monospace;
+  }
+  .messages { overflow-y: auto; overflow-anchor: auto; }
   .chatbox {
     max-width: 1140px;
     width: 100%;
@@ -148,7 +126,6 @@
     display: flex;
     flex-direction: column;
     padding: 0 0 0.75rem 0;
-    font-family: 'Source Sans Pro', ui-sans-serif, system-ui, sans-serif;
     color: #f3f4f6;
     box-shadow: 0 6px 32px 0 rgba(0,0,0,0.14), 0 1.5px 6px 0 rgba(0,0,0,0.05);
     overflow: hidden;
@@ -205,7 +182,6 @@
 
   /* PrismJS for code blocks in markdown */
   .msg-bubble pre, .msg-bubble code {
-    font-family: 'JetBrains Mono', 'Fira Mono', 'Consolas', monospace;
     font-size: 0.97rem;
     background: #18181b !important;
     color: #cdd9e5;
