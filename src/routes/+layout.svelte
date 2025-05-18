@@ -1,23 +1,14 @@
 <script>
-  // 1) import the page store
   import { page } from '$app/state';
-
-  // 2) grab your props
   let { bots, children } = $props();
 </script>
 
 <nav class="side-nav">
-  <ul>
-    <!-- now $page is valid -->
-    <li>
-      <a 
-        href="/"
-        class={{ active: $page.url.pathname === '/' }}
-      >
-        Home
-      </a>
-    </li>
-
+  <div class="nav-logo-container">
+    <img src="/logo_v2.svg" alt="Ragnode Logo" class="nav-logo" />
+  </div>
+  <ul class="nav-links">
+    <li><a href="/" class={{ active: $page.url.pathname === '/' }}>Home</a></li>
     {#each Object.entries(bots) as [botId, bot]}
       <li>
         <a
@@ -31,6 +22,6 @@
   </ul>
 </nav>
 
-<main>
+<main class="main-content">
   {@render children()}
 </main>
